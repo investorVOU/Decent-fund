@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { withBaseUrl } from "./baseUrl";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -13,7 +14,11 @@ export async function apiRequest<T = any>(
 ): Promise<T> {
   // If input is a string (URL) and init is undefined, it's a simple GET request
   // If input is a string and init has method, body, etc. then it's a POST/PUT/DELETE
-  const res = await fetch(input, {
+  
+  // Apply base URL if input is a string path
+  const url = typeof input === 'string' ? withBaseUrl(input) : input;
+  
+  const res = await fetch(url, {
     ...init,
     credentials: "include",
     headers: {
@@ -44,7 +49,10 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    // Apply base URL to the query key (which should be the API path)
+    const url = withBaseUrl(queryKey[0] as string);
+    
+    const res = await fetch(url, {
       credentials: "include",
     });
 

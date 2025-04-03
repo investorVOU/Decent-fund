@@ -35,18 +35,33 @@ The application can be deployed to GitHub Pages:
 
 1. Make sure you have the `gh-pages` package installed
 2. Update the repository URL in `deploy.js` if needed
-3. Run the deployment script:
+3. Modify the base URL in `.env.production` if your repository name is different
+4. Run the deployment script:
    ```
    ./deploy.sh
    ```
-4. Your application will be available at `https://[username].github.io/[repository]/`
+5. Your application will be available at `https://[username].github.io/[repository]/`
+
+#### Understanding Base URL Handling
+
+We've implemented robust base URL handling to ensure the application works correctly when deployed to subdirectories (like GitHub Pages):
+
+- The `client/src/lib/baseUrl.ts` utility provides functions to manage paths:
+  - `getBaseUrl()` - Gets the configured base URL 
+  - `withBaseUrl(path)` - Prepends the base URL to any path
+
+- This handling is integrated with:
+  - API requests via `queryClient.ts`
+  - Application routing in `App.tsx`
+  - Static asset references
 
 ### Production Deployment
 
 For production deployments:
-1. Build the application: `npm run build`
-2. The production-ready files will be in the `dist` directory
-3. Deploy the contents to your hosting provider
+1. Adjust the `VITE_BASE_URL` in `.env.production` if needed
+2. Build the application: `npm run build`
+3. The production-ready files will be in the `dist` directory
+4. Deploy the contents to your hosting provider
 
 ## Contributing
 
