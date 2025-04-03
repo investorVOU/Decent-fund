@@ -45,8 +45,6 @@ export default function ProposalCard({ proposal, onVoteSuccess }: ProposalCardPr
   
   const { toast } = useToast();
   const address = useAddress();
-  // Cast useConnect with any for compatibility with ThirdWeb version
-  const { connect, connectors } = useConnect() as any;
   
   // For future implementation with actual staking contract
   // const { contract } = useContract("YOUR_STAKING_CONTRACT_ADDRESS");
@@ -60,15 +58,9 @@ export default function ProposalCard({ proposal, onVoteSuccess }: ProposalCardPr
     if (!address) {
       toast({
         title: "Wallet not connected",
-        description: "Please connect your wallet to vote",
+        description: "Please connect your wallet to vote using the button in the header",
         variant: "destructive",
       });
-      
-      // Connect wallet if MetaMask is available
-      const metaMaskConnector = connectors.find((c: any) => c.id === "metaMask" || c.id === "injected");
-      if (metaMaskConnector) {
-        connect({ connector: metaMaskConnector });
-      }
       
       return;
     }

@@ -1,9 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import { ThirdwebProvider } from "@thirdweb-dev/react";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "./lib/queryClient";
+import { ThirdwebProvider, ChainId } from "@thirdweb-dev/react";
 
 // Metis Goerli testnet chain config
 const activeChain = {
@@ -30,10 +28,7 @@ createRoot(document.getElementById("root")!).render(
     clientId={clientId}
     activeChain={activeChain}
     supportedChains={[activeChain]}
-    queryClient={queryClient}
   >
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
+    <App />
   </ThirdwebProvider>
 );
