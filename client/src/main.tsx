@@ -26,13 +26,14 @@ const activeChain = {
 const clientId = import.meta.env.VITE_THIRDWEB_CLIENT_ID || "c406dd51cf4ec9a6d3d116658b18c8aa";
 
 createRoot(document.getElementById("root")!).render(
-  <QueryClientProvider client={queryClient}>
-    <ThirdwebProvider 
-      clientId={clientId}
-      activeChain={activeChain}
-      supportedChains={[activeChain]}
-    >
+  <ThirdwebProvider 
+    clientId={clientId}
+    activeChain={activeChain}
+    supportedChains={[activeChain]}
+    queryClient={queryClient}
+  >
+    <QueryClientProvider client={queryClient}>
       <App />
-    </ThirdwebProvider>
-  </QueryClientProvider>
+    </QueryClientProvider>
+  </ThirdwebProvider>
 );
