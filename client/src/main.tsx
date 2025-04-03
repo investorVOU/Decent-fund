@@ -1,23 +1,23 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import { ThirdwebProvider, ChainId } from "@thirdweb-dev/react";
+import { ThirdwebProvider } from "@thirdweb-dev/react";
+import { Sepolia } from "@thirdweb-dev/chains";
 
-// Metis Goerli testnet chain config
-const activeChain = {
-  chainId: 599,
-  rpc: ["https://goerli.gateway.metisdevops.link"],
-  nativeCurrency: {
-    decimals: 18,
-    name: "Metis",
-    symbol: "METIS",
-  },
-  shortName: "metis-goerli",
-  slug: "metis-goerli",
-  testnet: true,
-  chain: "Metis Goerli",
-  name: "Metis Goerli Testnet",
+// We're now using Sepolia testnet
+const infuraProjectId = import.meta.env.INFURA_PROJECT_ID;
+
+// Create a custom Sepolia configuration with our Infura RPC
+const sepoliaWithInfura = {
+  ...Sepolia,
+  // Override the RPC URLs with our Infura endpoint first in the list
+  rpc: infuraProjectId 
+    ? [`https://sepolia.infura.io/v3/${infuraProjectId}`, ...(Sepolia.rpc || [])]
+    : Sepolia.rpc
 };
+
+console.log("Using Sepolia testnet configuration");
+const activeChain = sepoliaWithInfura;
 
 // You can get this key from your Thirdweb dashboard
 // For now, using a placeholder - you'll need to replace this with your actual key

@@ -91,7 +91,7 @@ export default function ProposalCard({ proposal, onVoteSuccess }: ProposalCardPr
       
       toast({
         title: "Vote submitted",
-        description: `You have successfully voted ${voteType} this proposal with ${stakeAmount} METIS`,
+        description: `You have successfully voted ${voteType} this proposal with ${stakeAmount} ETH`,
       });
       
       setVoteDialogOpen(false);
@@ -156,7 +156,7 @@ export default function ProposalCard({ proposal, onVoteSuccess }: ProposalCardPr
                   </div>
                   <div>
                     <h4 className="text-sm font-medium text-gray-400">Tokens Staked</h4>
-                    <p className="text-blue-400">{proposal.tokenStake} METIS</p>
+                    <p className="text-blue-400">{proposal.tokenStake} ETH</p>
                   </div>
                   <div>
                     <h4 className="text-sm font-medium text-gray-400">Days Remaining</h4>
@@ -168,7 +168,7 @@ export default function ProposalCard({ proposal, onVoteSuccess }: ProposalCardPr
                 
                 <div className="pt-2">
                   <div className="flex justify-between items-center mb-1">
-                    <h4 className="text-sm font-medium text-gray-400">Metis Impact Score</h4>
+                    <h4 className="text-sm font-medium text-gray-400">Impact Score</h4>
                     <span className="text-blue-400 font-semibold">
                       {proposal.metisImpactScore.toFixed(1)}/10
                     </span>
@@ -213,7 +213,7 @@ export default function ProposalCard({ proposal, onVoteSuccess }: ProposalCardPr
               <div className="flex justify-between items-center mb-1">
                 <h4 className="text-sm font-medium text-gray-400">Funding Progress</h4>
                 <span className="text-gray-400 font-semibold">
-                  {proposal.raisedAmount} / {proposal.fundingGoal} METIS
+                  {proposal.raisedAmount} / {proposal.fundingGoal} ETH
                 </span>
               </div>
               <Progress 
@@ -254,22 +254,23 @@ export default function ProposalCard({ proposal, onVoteSuccess }: ProposalCardPr
               Vote {voteType === 'for' ? 'For' : 'Against'}: {proposal.title}
             </DialogTitle>
             <DialogDescription>
-              Stake your METIS tokens to vote on this proposal. Your tokens will be locked until the proposal is completed.
+              Stake your ETH tokens to vote on this proposal. Your tokens will be locked until the proposal is completed.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <h4 className="text-sm font-medium">Amount to Stake (METIS)</h4>
+              <h4 className="text-sm font-medium">Amount to Stake (ETH)</h4>
               <Input
                 type="number"
                 value={stakeAmount}
-                onChange={(e) => setStakeAmount(Math.max(1, Number(e.target.value)))}
-                min={1}
+                onChange={(e) => setStakeAmount(Math.max(0.01, Number(e.target.value)))}
+                min={0.01}
+                step={0.01}
                 placeholder="Enter amount to stake"
               />
               <p className="text-sm text-muted-foreground">
-                Minimum stake: 1 METIS
+                Minimum stake: 0.01 ETH
               </p>
             </div>
           </div>
@@ -280,7 +281,7 @@ export default function ProposalCard({ proposal, onVoteSuccess }: ProposalCardPr
             </Button>
             <Button 
               onClick={submitVote} 
-              disabled={isVoting || !stakeAmount || stakeAmount < 1}
+              disabled={isVoting || !stakeAmount || stakeAmount < 0.01}
               className={voteType === 'for' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
             >
               {isVoting ? 'Processing...' : `Stake & Vote ${voteType === 'for' ? 'For' : 'Against'}`}

@@ -18,7 +18,7 @@ export default function Header() {
         <div className="flex items-center gap-6 lg:gap-10">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-              MetisFund
+              DecentraFund
             </span>
           </Link>
           <nav className="hidden md:flex gap-6">
@@ -47,15 +47,15 @@ export default function Header() {
             modalTitle="Choose your wallet"
             modalSize="wide"
             welcomeScreen={{
-              title: "MetisFund Dapp",
+              title: "DecentraFund Dapp",
               subtitle: "Connect your wallet to participate in funding proposals",
               img: {
-                src: "https://metisdao.org/wp-content/uploads/2022/06/metis-token.svg",
+                src: "https://ethereum.org/static/4f10d2777b2d14759feb01c65b2765f7/b7d3e/eth-glyph-colored.png",
                 width: 150,
                 height: 150,
               },
             }}
-            modalTitleIconUrl="https://metisdao.org/wp-content/uploads/2022/06/metis-token.svg"
+            modalTitleIconUrl="https://ethereum.org/static/4f10d2777b2d14759feb01c65b2765f7/b7d3e/eth-glyph-colored.png"
           />
           
           <div className="block md:hidden">
