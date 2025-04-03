@@ -9,6 +9,7 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
+import { withBaseUrl } from "./lib/baseUrl";
 
 // Admin authentication protection
 function ProtectedAdminRoute() {
@@ -19,7 +20,7 @@ function ProtectedAdminRoute() {
     const checkAuth = async () => {
       try {
         // Check if admin is authenticated by sending a verification request
-        const response = await fetch('/api/admin/verify', {
+        const response = await fetch(withBaseUrl('/api/admin/verify'), {
           credentials: 'include' // Important for cookies/session
         });
         
@@ -58,10 +59,10 @@ function ProtectedAdminRoute() {
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home}/>
-      <Route path="/admin" component={ProtectedAdminRoute}/>
-      <Route path="/admin-login" component={AdminLogin}/>
-      <Route path="/submit" component={SubmitProposal}/>
+      <Route path={withBaseUrl('/')} component={Home}/>
+      <Route path={withBaseUrl('/admin')} component={ProtectedAdminRoute}/>
+      <Route path={withBaseUrl('/admin-login')} component={AdminLogin}/>
+      <Route path={withBaseUrl('/submit')} component={SubmitProposal}/>
       <Route component={NotFound} />
     </Switch>
   );

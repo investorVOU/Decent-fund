@@ -1,25 +1,26 @@
 #!/bin/bash
 
-# Ensure production environment variables are used
-echo "Setting up production environment..."
-cp .env.production .env
+# This script deploys the DecentraFund application to GitHub Pages
 
-# Build the project
-echo "Building the project..."
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+# Print commands before executing them
+set -x
+
+# Build the application
+echo "Building application for production..."
 npm run build
 
-# Copy the GitHub Pages index file
-echo "Copying GitHub Pages index file..."
+# Create a gh-pages-index.html file for GitHub Pages
+echo "Creating GitHub Pages index file..."
 cp gh-pages-index.html dist/index.html
 
-# Deploy to GitHub Pages
+# Run the deploy script to push the built files to GitHub Pages
 echo "Deploying to GitHub Pages..."
 node deploy.js
 
-# Cleanup
-echo "Cleaning up..."
-if [ -f ".env" ]; then
-  rm .env
-fi
-
-echo "Done!"
+echo "✅ Deployment complete! Your application should be available at:"
+echo "https://investorVOU.github.io/Decent-fund/"
+echo ""
+echo "Note: It may take a few minutes for the changes to propagate."
