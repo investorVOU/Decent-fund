@@ -25,6 +25,8 @@ export const proposals = pgTable("proposals", {
   creatorAddress: text("creator_address").notNull(),
   fundingGoal: integer("funding_goal").notNull(),
   raisedAmount: integer("raised_amount").default(0),
+  votesFor: integer("votes_for").default(0),
+  votesAgainst: integer("votes_against").default(0),
   duration: integer("duration").notNull(), // in days
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -32,6 +34,8 @@ export const proposals = pgTable("proposals", {
 export const insertProposalSchema = createInsertSchema(proposals).omit({
   id: true,
   raisedAmount: true,
+  votesFor: true,
+  votesAgainst: true,
   createdAt: true,
 });
 
