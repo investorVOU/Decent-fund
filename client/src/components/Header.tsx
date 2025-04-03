@@ -25,8 +25,8 @@ export default function Header() {
           <Link href="#" className="text-white hover:text-purple-300 transition-colors px-2">About</Link>
         </nav>
 
-        {/* Connect Wallet Button */}
-        <div className="hidden md:block">
+        {/* Connect Wallet Button - Always visible */}
+        <div className="flex items-center">
           <ConnectWallet 
             btnTitle="Connect Wallet"
             className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200"
@@ -51,12 +51,6 @@ export default function Header() {
             <Link href="/" className="text-white hover:text-purple-300 transition-colors py-2">Explore</Link>
             <Link href="#" className="text-white hover:text-purple-300 transition-colors py-2">How It Works</Link>
             <Link href="#" className="text-white hover:text-purple-300 transition-colors py-2">About</Link>
-            <div className="pt-2">
-              <ConnectWallet 
-                btnTitle="Connect Wallet"
-                className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 w-full"
-              />
-            </div>
           </nav>
         </div>
       )}
