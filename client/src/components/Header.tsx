@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ConnectWallet, useAddress } from "@thirdweb-dev/react";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Button } from "@/components/ui/button";
 export default function Header() {
   const address = useAddress();
   const [location] = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => {
     return location === path;
@@ -65,10 +67,49 @@ export default function Header() {
           />
           
           <div className="block md:hidden">
-            <Button variant="outline" size="icon" className="rounded-full">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="rounded-full"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
               <MenuIcon className="h-5 w-5" />
               <span className="sr-only">Toggle Menu</span>
             </Button>
+            
+            {mobileMenuOpen && (
+              <div className="absolute top-16 right-0 w-full bg-gray-900 border-b border-gray-800 p-4 z-20">
+                <div className="flex flex-col gap-2">
+                  <Link href="/">
+                    <Button
+                      variant={isActive("/") ? "default" : "ghost"}
+                      className="w-full justify-start"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Browse
+                    </Button>
+                  </Link>
+                  <Link href="/submit">
+                    <Button
+                      variant={isActive("/submit") ? "default" : "ghost"}
+                      className="w-full justify-start"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Submit Proposal
+                    </Button>
+                  </Link>
+                  <Link href="/admin">
+                    <Button
+                      variant={isActive("/admin") ? "default" : "ghost"}
+                      className="w-full justify-start"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Admin
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

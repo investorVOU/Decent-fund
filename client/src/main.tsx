@@ -23,7 +23,7 @@ const activeChain = {
 
 // You can get this key from your Thirdweb dashboard
 // For now, using a placeholder - you'll need to replace this with your actual key
-const clientId = import.meta.env.VITE_THIRDWEB_CLIENT_ID || "placeholder_client_id";
+const clientId = import.meta.env.VITE_THIRDWEB_CLIENT_ID || "c406dd51cf4ec9a6d3d116658b18c8aa";
 
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
