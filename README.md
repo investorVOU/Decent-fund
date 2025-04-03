@@ -27,6 +27,27 @@ A decentralized crowdfunding platform leveraging blockchain technology to enable
    - `INFURA_PROJECT_ID`: Your Infura project ID for Ethereum connection
 4. Run the development server with `npm run dev`
 
+## Deployment
+
+### GitHub Pages
+
+The application can be deployed to GitHub Pages:
+
+1. Make sure you have the `gh-pages` package installed
+2. Update the repository URL in `deploy.js` if needed
+3. Run the deployment script:
+   ```
+   ./deploy.sh
+   ```
+4. Your application will be available at `https://[username].github.io/[repository]/`
+
+### Production Deployment
+
+For production deployments:
+1. Build the application: `npm run build`
+2. The production-ready files will be in the `dist` directory
+3. Deploy the contents to your hosting provider
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
