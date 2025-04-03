@@ -1,8 +1,8 @@
-// Helper for handling base URLs, particularly for GitHub Pages deployments
+// Helper for handling base URLs, particularly for GitHub Pages and Vercel deployments
 
 /**
  * Returns the base URL for the application, accounting for
- * GitHub Pages or other deployment environments
+ * GitHub Pages, Vercel, or other deployment environments
  */
 export function getBaseUrl(): string {
   // Check for environment variable (defined in .env.production)
@@ -11,7 +11,13 @@ export function getBaseUrl(): string {
     return envBaseUrl;
   }
   
-  // Default to root path if not specified
+  // Check for Vercel deployment
+  if (window.location.hostname.includes('vercel.app')) {
+    // In Vercel, we serve the API from the same domain, so use the current origin
+    return window.location.origin;
+  }
+  
+  // Default to root path if not in any special environment
   return '/';
 }
 
