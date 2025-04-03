@@ -12,7 +12,7 @@ const buildDir = path.join(__dirname, 'dist');
 // Deploy options
 const options = {
   branch: 'gh-pages',
-  repo: 'https://github.com/investorVOU/Decent-fund.git',
+  repo: 'https://github.com/investorVOU/Decent-fund.git', // Already correct!
   message: 'Auto-generated deployment to GitHub Pages',
   user: {
     name: 'GitHub Pages Deployer',
