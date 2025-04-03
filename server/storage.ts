@@ -13,15 +13,19 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   
   // Proposal operations
-  getProposals(): Promise<Proposal[]>;
+  getProposals(filterApproved?: boolean): Promise<Proposal[]>;
   getProposalById(id: number): Promise<Proposal | undefined>;
   createProposal(proposal: InsertProposal): Promise<Proposal>;
   updateProposal(id: number, proposal: Partial<Proposal>): Promise<Proposal | undefined>;
+  approveProposal(id: number, approved: boolean): Promise<Proposal | undefined>;
+  calculateMetisImpactScore(id: number): Promise<number>;
   
   // Vote operations
   getVotesByProposalId(proposalId: number): Promise<Vote[]>;
   getVoteByAddressAndProposal(proposalId: number, voterAddress: string): Promise<Vote | undefined>;
   createVote(vote: InsertVote): Promise<Vote>;
+  unlockTokens(proposalId: number, voterAddress: string): Promise<void>;
+  unlockAllTokensForProposal(proposalId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -49,7 +53,10 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Proposal methods
-  async getProposals(): Promise<Proposal[]> {
+  async getProposals(filterApproved: boolean = false): Promise<Proposal[]> {
+    if (filterApproved) {
+      return await db.select().from(proposals).where(eq(proposals.approved, true));
+    }
     return await db.select().from(proposals);
   }
   
@@ -60,13 +67,28 @@ export class DatabaseStorage implements IStorage {
   
   async createProposal(insertProposal: InsertProposal): Promise<Proposal> {
     const now = new Date();
+    
+    // Calculate initial Metis Impact Score if provided
+    const energyEfficiency = insertProposal.energyEfficiency || 0;
+    const communityBenefit = insertProposal.communityBenefit || 0;
+    const innovationFactor = insertProposal.innovationFactor || 0;
+    
+    // Calculate the score (weighted average)
+    const metisImpactScore = energyEfficiency > 0 || communityBenefit > 0 || innovationFactor > 0 
+      ? (energyEfficiency * 0.4 + communityBenefit * 0.4 + innovationFactor * 0.2) 
+      : 0;
+    
     const result = await db.insert(proposals).values({
       ...insertProposal,
       raisedAmount: 0,
       votesFor: 0,
       votesAgainst: 0,
-      createdAt: now
+      createdAt: now,
+      approved: false,
+      metisImpactScore,
+      tokenStake: 0
     }).returning();
+    
     return result[0];
   }
   
@@ -76,6 +98,33 @@ export class DatabaseStorage implements IStorage {
       .where(eq(proposals.id, id))
       .returning();
     return result[0];
+  }
+  
+  async approveProposal(id: number, approved: boolean): Promise<Proposal | undefined> {
+    const result = await db.update(proposals)
+      .set({ approved })
+      .where(eq(proposals.id, id))
+      .returning();
+    return result[0];
+  }
+  
+  async calculateMetisImpactScore(id: number): Promise<number> {
+    const proposal = await this.getProposalById(id);
+    if (!proposal) {
+      throw new Error(`Proposal with ID ${id} not found`);
+    }
+    
+    // Calculate the score (weighted average)
+    const energyEfficiency = proposal.energyEfficiency || 0;
+    const communityBenefit = proposal.communityBenefit || 0;
+    const innovationFactor = proposal.innovationFactor || 0;
+    
+    const metisImpactScore = (energyEfficiency * 0.4 + communityBenefit * 0.4 + innovationFactor * 0.2);
+    
+    // Update the score in the database
+    await this.updateProposal(id, { metisImpactScore });
+    
+    return metisImpactScore;
   }
   
   // Vote methods
@@ -96,8 +145,11 @@ export class DatabaseStorage implements IStorage {
   async createVote(insertVote: InsertVote): Promise<Vote> {
     // Start a transaction
     return await db.transaction(async (tx) => {
-      // Insert the vote
-      const voteResult = await tx.insert(votes).values(insertVote).returning();
+      // Insert the vote with tokens staked
+      const voteResult = await tx.insert(votes).values({
+        ...insertVote,
+        locked: true
+      }).returning();
       const vote = voteResult[0];
       
       // Get the proposal
@@ -109,20 +161,77 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Update the proposal based on the vote
+      const stakedAmount = vote.stakedAmount || 0;
+      
       if (vote.support) {
         await tx.update(proposals)
           .set({ 
             votesFor: (proposal.votesFor || 0) + 1,
-            raisedAmount: (proposal.raisedAmount || 0) + 100 // Each positive vote contributes 100 METIS (for demo)
+            raisedAmount: (proposal.raisedAmount || 0) + stakedAmount, // Add staked amount to raised amount
+            tokenStake: (proposal.tokenStake || 0) + stakedAmount // Track total staked tokens
           })
           .where(eq(proposals.id, proposal.id));
       } else {
         await tx.update(proposals)
-          .set({ votesAgainst: (proposal.votesAgainst || 0) + 1 })
+          .set({ 
+            votesAgainst: (proposal.votesAgainst || 0) + 1,
+            tokenStake: (proposal.tokenStake || 0) + stakedAmount // Track total staked tokens
+          })
           .where(eq(proposals.id, proposal.id));
       }
       
       return vote;
+    });
+  }
+  
+  async unlockTokens(proposalId: number, voterAddress: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      const voteResult = await tx.update(votes)
+        .set({ locked: false })
+        .where(
+          and(
+            eq(votes.proposalId, proposalId),
+            eq(votes.voterAddress, voterAddress)
+          )
+        )
+        .returning();
+      
+      if (voteResult.length === 0) {
+        throw new Error(`No vote found for proposal ${proposalId} from address ${voterAddress}`);
+      }
+    });
+  }
+  
+  async unlockAllTokensForProposal(proposalId: number): Promise<void> {
+    await db.transaction(async (tx) => {
+      // Get the proposal to check if funding goal is met
+      const proposalResult = await tx.select().from(proposals).where(eq(proposals.id, proposalId));
+      const proposal = proposalResult[0];
+      
+      if (!proposal) {
+        throw new Error(`Proposal with ID ${proposalId} not found`);
+      }
+      
+      const raisedAmount = proposal.raisedAmount || 0;
+      const fundingGoal = proposal.fundingGoal || 0;
+      
+      // Check if proposal succeeded (raisedAmount >= fundingGoal)
+      if (raisedAmount >= fundingGoal) {
+        // Only unlock supporting votes tokens if goal is met
+        await tx.update(votes)
+          .set({ locked: false })
+          .where(
+            and(
+              eq(votes.proposalId, proposalId),
+              eq(votes.support, true)
+            )
+          );
+      } else {
+        // Unlock all votes tokens if goal is not met
+        await tx.update(votes)
+          .set({ locked: false })
+          .where(eq(votes.proposalId, proposalId));
+      }
     });
   }
   

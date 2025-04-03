@@ -7,20 +7,35 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+export async function apiRequest<T = any>(
+  input: string | Request,
+  init?: RequestInit
+): Promise<T> {
+  // If input is a string (URL) and init is undefined, it's a simple GET request
+  // If input is a string and init has method, body, etc. then it's a POST/PUT/DELETE
+  const res = await fetch(input, {
+    ...init,
     credentials: "include",
+    headers: {
+      ...(init?.headers || {}),
+      ...(init?.body ? { "Content-Type": "application/json" } : {})
+    }
   });
 
   await throwIfResNotOk(res);
-  return res;
+  
+  // Try to parse as JSON, fall back to text if it fails
+  try {
+    const contentType = res.headers.get("content-type");
+    
+    if (contentType && contentType.includes("application/json")) {
+      return await res.json() as T;
+    }
+    
+    return (await res.text()) as unknown as T;
+  } catch (e) {
+    return (await res.text()) as unknown as T;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

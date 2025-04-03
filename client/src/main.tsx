@@ -21,9 +21,17 @@ const activeChain = {
   name: "Metis Goerli Testnet",
 };
 
+// You can get this key from your Thirdweb dashboard
+// For now, using a placeholder - you'll need to replace this with your actual key
+const clientId = import.meta.env.VITE_THIRDWEB_CLIENT_ID || "placeholder_client_id";
+
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
-    <ThirdwebProvider activeChain={activeChain}>
+    <ThirdwebProvider 
+      clientId={clientId}
+      activeChain={activeChain}
+      supportedChains={[activeChain]}
+    >
       <App />
     </ThirdwebProvider>
   </QueryClientProvider>

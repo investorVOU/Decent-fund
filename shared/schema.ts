@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -29,6 +29,13 @@ export const proposals = pgTable("proposals", {
   votesAgainst: integer("votes_against").default(0),
   duration: integer("duration").notNull(), // in days
   createdAt: timestamp("created_at").defaultNow(),
+  // New fields
+  approved: boolean("approved").default(false),
+  metisImpactScore: real("metis_impact_score").default(0),
+  energyEfficiency: integer("energy_efficiency").default(0), // 1-10 score
+  communityBenefit: integer("community_benefit").default(0), // 1-10 score
+  innovationFactor: integer("innovation_factor").default(0), // 1-10 score
+  tokenStake: integer("token_stake").default(0), // Total tokens staked
 });
 
 export const insertProposalSchema = createInsertSchema(proposals).omit({
@@ -37,6 +44,9 @@ export const insertProposalSchema = createInsertSchema(proposals).omit({
   votesFor: true,
   votesAgainst: true,
   createdAt: true,
+  approved: true,
+  metisImpactScore: true,
+  tokenStake: true,
 });
 
 export type InsertProposal = z.infer<typeof insertProposalSchema>;
@@ -48,10 +58,15 @@ export const votes = pgTable("votes", {
   proposalId: integer("proposal_id").notNull(),
   voterAddress: text("voter_address").notNull(),
   support: boolean("support").notNull(), // true for support, false for decline
+  stakedAmount: integer("staked_amount").default(0), // Amount of tokens staked
+  locked: boolean("locked").default(true), // Whether tokens are locked
 });
 
 export const insertVoteSchema = createInsertSchema(votes).omit({
   id: true,
+  locked: true,
+}).extend({
+  stakedAmount: z.number().min(1, "Must stake at least 1 token")
 });
 
 export type InsertVote = z.infer<typeof insertVoteSchema>;

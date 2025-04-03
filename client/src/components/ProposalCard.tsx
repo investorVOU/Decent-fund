@@ -1,56 +1,117 @@
 import { useState } from "react";
-import { useAddress } from "@thirdweb-dev/react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useConnect, useAddress, useContract, useContractWrite } from "@thirdweb-dev/react";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Proposal } from "@shared/schema";
+
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
+// Interface matching our database schema
+interface Proposal {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  creatorAddress: string;
+  fundingGoal: number;
+  raisedAmount: number;
+  votesFor: number;
+  votesAgainst: number;
+  duration: number;
+  createdAt: string;
+  approved: boolean;
+  metisImpactScore: number;
+  energyEfficiency?: number;
+  communityBenefit?: number;
+  innovationFactor?: number;
+  tokenStake: number;
+}
 
 interface ProposalCardProps {
   proposal: Proposal;
+  onVoteSuccess?: () => void;
 }
 
-export default function ProposalCard({ proposal }: ProposalCardProps) {
+export default function ProposalCard({ proposal, onVoteSuccess }: ProposalCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [stakeAmount, setStakeAmount] = useState(10); // Default stake amount
+  const [voteDialogOpen, setVoteDialogOpen] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
-  const [hasVoted, setHasVoted] = useState(false);
-  const address = useAddress();
+  const [voteType, setVoteType] = useState<'for' | 'against' | null>(null);
+  
   const { toast } = useToast();
+  const address = useAddress();
+  // Cast useConnect with any for compatibility with ThirdWeb version
+  const { connect, connectors } = useConnect() as any;
   
-  const calculateProgress = () => {
-    return (proposal.raisedAmount / proposal.fundingGoal) * 100;
+  // For future implementation with actual staking contract
+  // const { contract } = useContract("YOUR_STAKING_CONTRACT_ADDRESS");
+  // const { mutateAsync: stake } = useContractWrite(contract, "stake");
+
+  const handleExpandToggle = () => {
+    setExpanded(!expanded);
   };
-  
-  const handleVote = async (support: boolean) => {
+
+  const handleVoteClick = (type: 'for' | 'against') => {
     if (!address) {
       toast({
         title: "Wallet not connected",
-        description: "Please connect your wallet to vote on proposals",
+        description: "Please connect your wallet to vote",
         variant: "destructive",
       });
+      
+      // Connect wallet if MetaMask is available
+      const metaMaskConnector = connectors.find((c: any) => c.id === "metaMask" || c.id === "injected");
+      if (metaMaskConnector) {
+        connect({ connector: metaMaskConnector });
+      }
+      
       return;
     }
     
-    setIsVoting(true);
+    setVoteType(type);
+    setVoteDialogOpen(true);
+  };
+
+  const submitVote = async () => {
+    if (!address || !voteType || stakeAmount <= 0) return;
     
+    setIsVoting(true);
     try {
-      await apiRequest("POST", "/api/votes", {
-        proposalId: proposal.id,
-        voterAddress: address,
-        support,
+      // For future implementation with actual staking contract
+      // 1. First stake tokens in contract
+      // await stake({ args: [proposal.id, stakeAmount] });
+      
+      // 2. Then record vote in database
+      await apiRequest('/api/votes', {
+        method: 'POST',
+        body: JSON.stringify({
+          proposalId: proposal.id,
+          voterAddress: address,
+          support: voteType === 'for',
+          stakedAmount: stakeAmount
+        })
       });
       
-      // Invalidate proposals query to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/proposals"] });
-      
-      setHasVoted(true);
       toast({
         title: "Vote submitted",
-        description: `You have ${support ? "supported" : "declined"} this proposal.`,
-        variant: "default",
+        description: `You have successfully voted ${voteType} this proposal with ${stakeAmount} METIS`,
       });
+      
+      setVoteDialogOpen(false);
+      
+      if (onVoteSuccess) {
+        onVoteSuccess();
+      }
     } catch (error) {
-      console.error("Voting error:", error);
+      console.error('Failed to vote:', error);
       toast({
-        title: "Voting failed",
-        description: error instanceof Error ? error.message : "An error occurred while voting",
+        title: "Vote failed",
+        description: error instanceof Error ? error.message : "Failed to submit your vote",
         variant: "destructive",
       });
     } finally {
@@ -58,59 +119,183 @@ export default function ProposalCard({ proposal }: ProposalCardProps) {
     }
   };
 
+  // Calculate funding progress percentage
+  const progressPercent = Math.min((proposal.raisedAmount / proposal.fundingGoal) * 100, 100);
+
+  // Calculate days remaining
+  const createdDate = new Date(proposal.createdAt);
+  const endDate = new Date(createdDate);
+  endDate.setDate(endDate.getDate() + proposal.duration);
+  const now = new Date();
+  const daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  const isExpired = daysRemaining === 0;
+
   return (
-    <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl overflow-hidden shadow-lg transition-transform hover:scale-[1.02] duration-300">
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-4">
-          <h3 className="text-xl font-bold font-roboto">{proposal.title}</h3>
-          <span className="bg-purple-800 text-white text-xs px-2 py-1 rounded-full">{proposal.category}</span>
-        </div>
-        <p className="text-gray-100 mb-4 font-roboto">{proposal.description}</p>
-        
-        <div className="mb-4">
-          <div className="flex justify-between text-sm mb-1">
-            <span>Progress</span>
-            <span>{proposal.raisedAmount} / {proposal.fundingGoal} METIS</span>
+    <>
+      <Card className="overflow-hidden transition-all duration-300 hover:shadow-md bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-start gap-2">
+            <div>
+              <CardTitle className="text-xl font-bold text-white">{proposal.title}</CardTitle>
+              <CardDescription className="text-gray-400 mt-1">
+                by {proposal.creatorAddress.substring(0, 6)}...{proposal.creatorAddress.substring(proposal.creatorAddress.length - 4)}
+              </CardDescription>
+            </div>
+            <Badge className="bg-blue-600 hover:bg-blue-700">{proposal.category}</Badge>
           </div>
-          <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-green-500 rounded-full"
-              style={{ width: `${Math.min(calculateProgress(), 100)}%` }}
-            ></div>
-          </div>
-        </div>
+        </CardHeader>
         
-        <div className="flex justify-between text-sm mb-4">
-          <div>
-            <span className="text-gray-300">Created by</span>
-            <div className="flex items-center">
-              <div className="w-6 h-6 rounded-full bg-gray-600 mr-2"></div>
-              <span className="text-white">{proposal.creatorAddress}</span>
+        <CardContent className="pb-3">
+          <div className="space-y-4">
+            <p className={`text-gray-300 ${expanded ? '' : 'line-clamp-3'}`}>
+              {proposal.description}
+            </p>
+            
+            {expanded && (
+              <div className="pt-2 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-400">Votes For</h4>
+                    <p className="text-green-400">{proposal.votesFor}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-400">Votes Against</h4>
+                    <p className="text-red-400">{proposal.votesAgainst}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-400">Tokens Staked</h4>
+                    <p className="text-blue-400">{proposal.tokenStake} METIS</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-400">Days Remaining</h4>
+                    <p className={isExpired ? "text-red-400" : "text-gray-300"}>
+                      {isExpired ? "Expired" : `${daysRemaining} days`}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="pt-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <h4 className="text-sm font-medium text-gray-400">Metis Impact Score</h4>
+                    <span className="text-blue-400 font-semibold">
+                      {proposal.metisImpactScore.toFixed(1)}/10
+                    </span>
+                  </div>
+                  <Progress 
+                    value={proposal.metisImpactScore * 10} 
+                    className="h-2 bg-gray-700" 
+                  />
+                  
+                  {(proposal.energyEfficiency || proposal.communityBenefit || proposal.innovationFactor) && (
+                    <div className="grid grid-cols-3 gap-2 mt-2 text-xs text-gray-400">
+                      {proposal.energyEfficiency && (
+                        <div className="text-center">
+                          <span>Energy: {proposal.energyEfficiency}/10</span>
+                        </div>
+                      )}
+                      {proposal.communityBenefit && (
+                        <div className="text-center">
+                          <span>Community: {proposal.communityBenefit}/10</span>
+                        </div>
+                      )}
+                      {proposal.innovationFactor && (
+                        <div className="text-center">
+                          <span>Innovation: {proposal.innovationFactor}/10</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <Button 
+              variant="link" 
+              className="p-0 h-auto text-blue-400 hover:text-blue-300" 
+              onClick={handleExpandToggle}
+            >
+              {expanded ? "Show Less" : "Show More"}
+            </Button>
+            
+            <div className="pt-2">
+              <div className="flex justify-between items-center mb-1">
+                <h4 className="text-sm font-medium text-gray-400">Funding Progress</h4>
+                <span className="text-gray-400 font-semibold">
+                  {proposal.raisedAmount} / {proposal.fundingGoal} METIS
+                </span>
+              </div>
+              <Progress 
+                value={progressPercent} 
+                className="h-2 bg-gray-700" 
+              />
+              <p className="text-right text-xs text-gray-500 mt-1">
+                {progressPercent.toFixed(1)}% Complete
+              </p>
             </div>
           </div>
-          <div className="text-right">
-            <span className="text-gray-300">Ends in</span>
-            <p>{proposal.duration} days</p>
-          </div>
-        </div>
+        </CardContent>
         
-        <div className="flex space-x-2">
-          <button 
-            className={`flex-1 ${hasVoted ? 'bg-gray-600' : 'bg-green-500 hover:brightness-125'} text-white font-medium py-2 px-4 rounded-lg transition-all`}
-            onClick={() => handleVote(true)}
-            disabled={isVoting || hasVoted}
+        <CardFooter className="flex justify-between pt-3">
+          <Button 
+            variant="outline" 
+            className="border-red-600 text-red-500 hover:bg-red-900/20"
+            onClick={() => handleVoteClick('against')}
+            disabled={isExpired}
           >
-            {isVoting ? "Processing..." : hasVoted ? "Supported" : "Support"}
-          </button>
-          <button 
-            className={`flex-1 ${hasVoted ? 'bg-gray-600' : 'bg-gray-700 hover:bg-gray-600'} text-white font-medium py-2 px-4 rounded-lg transition-colors`}
-            onClick={() => handleVote(false)}
-            disabled={isVoting || hasVoted}
+            Vote Against
+          </Button>
+          <Button 
+            variant="default" 
+            className="bg-green-600 hover:bg-green-700 text-white"
+            onClick={() => handleVoteClick('for')}
+            disabled={isExpired}
           >
-            {isVoting ? "Processing..." : hasVoted ? "Declined" : "Decline"}
-          </button>
-        </div>
-      </div>
-    </div>
+            Vote For
+          </Button>
+        </CardFooter>
+      </Card>
+      
+      <Dialog open={voteDialogOpen} onOpenChange={setVoteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Vote {voteType === 'for' ? 'For' : 'Against'}: {proposal.title}
+            </DialogTitle>
+            <DialogDescription>
+              Stake your METIS tokens to vote on this proposal. Your tokens will be locked until the proposal is completed.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Amount to Stake (METIS)</h4>
+              <Input
+                type="number"
+                value={stakeAmount}
+                onChange={(e) => setStakeAmount(Math.max(1, Number(e.target.value)))}
+                min={1}
+                placeholder="Enter amount to stake"
+              />
+              <p className="text-sm text-muted-foreground">
+                Minimum stake: 1 METIS
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVoteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={submitVote} 
+              disabled={isVoting || !stakeAmount || stakeAmount < 1}
+              className={voteType === 'for' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+            >
+              {isVoting ? 'Processing...' : `Stake & Vote ${voteType === 'for' ? 'For' : 'Against'}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
