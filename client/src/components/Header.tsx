@@ -38,14 +38,6 @@ export default function Header() {
                 Submit Proposal
               </Button>
             </Link>
-            <Link href="/admin">
-              <Button
-                variant={isActive("/admin") ? "default" : "ghost"}
-                className="text-sm font-medium"
-              >
-                Admin
-              </Button>
-            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">
@@ -96,15 +88,6 @@ export default function Header() {
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Submit Proposal
-                    </Button>
-                  </Link>
-                  <Link href="/admin">
-                    <Button
-                      variant={isActive("/admin") ? "default" : "ghost"}
-                      className="w-full justify-start"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Admin
                     </Button>
                   </Link>
                 </div>

@@ -1,11 +1,29 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Response } from "express";
+import { Request } from "express-serve-static-core";
 import { createServer, type Server } from "http";
+import path from "path";
+import session from "express-session";
 import { storage } from "./storage";
 import { insertProposalSchema, insertVoteSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
 
+// Extend express session types
+declare module "express-session" {
+  interface SessionData {
+    isAdmin: boolean;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Check if admin is authenticated
+  app.get("/api/admin/verify", (req: Request, res: Response) => {
+    if (req.session.isAdmin) {
+      res.status(200).json({ authenticated: true });
+    } else {
+      res.status(401).json({ authenticated: false });
+    }
+  });
   // Get all proposals (can filter for only approved ones)
   app.get("/api/proposals", async (req: Request, res: Response) => {
     try {
@@ -65,6 +83,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Approve or reject a proposal
   app.post("/api/proposals/approve", async (req: Request, res: Response) => {
     try {
+      // Check if user is authenticated as admin
+      if (!req.session.isAdmin) {
+        return res.status(401).json({ message: "Unauthorized: Admin access required" });
+      }
+
       const approvalSchema = z.object({
         id: z.number(),
         approved: z.boolean()
@@ -166,6 +189,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       res.status(500).json({ message: "Failed to submit vote", error: (error as Error).message });
     }
+  });
+
+  // Admin login route
+  app.post("/api/admin/login", (req: Request, res: Response) => {
+    try {
+      const { password } = req.body;
+      const adminPass = process.env.ADMIN_PASS;
+
+      if (!adminPass) {
+        return res.status(500).json({ 
+          message: "Admin password not configured on server" 
+        });
+      }
+
+      if (password === adminPass) {
+        // Authentication successful
+        const session = req.session as any;
+        session.isAdmin = true;
+        res.json({ success: true });
+      } else {
+        // Authentication failed
+        res.status(401).json({ 
+          message: "Invalid password",
+          success: false 
+        });
+      }
+    } catch (error) {
+      res.status(500).json({ 
+        message: "Login failed", 
+        error: (error as Error).message 
+      });
+    }
+  });
+  
+  // Admin logout route
+  app.post("/api/admin/logout", (req: Request, res: Response) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed", error: err.message });
+      }
+      res.json({ success: true });
+    });
   });
 
   const httpServer = createServer(app);

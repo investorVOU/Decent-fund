@@ -123,9 +123,38 @@ export default function Admin() {
     <div className="container py-10 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Admin Panel</h1>
-        <Link href="/">
-          <Button variant="outline">Back to Home</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/admin/logout', {
+                  method: 'POST',
+                  credentials: 'include'
+                });
+                
+                if (response.ok) {
+                  toast({
+                    title: "Logged out",
+                    description: "You have been logged out successfully"
+                  });
+                  window.location.href = '/';
+                }
+              } catch (error) {
+                toast({
+                  title: "Error",
+                  description: "Failed to log out",
+                  variant: "destructive"
+                });
+              }
+            }}
+          >
+            Logout
+          </Button>
+          <Link href="/">
+            <Button variant="outline">Back to Home</Button>
+          </Link>
+        </div>
       </div>
       
       <div className="space-y-6">
